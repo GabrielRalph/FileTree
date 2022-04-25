@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script type="module" src = "./fire-files.js"></script>
+    <link href = "./fire-files.css" rel = "stylesheet"/>
+  </head>
+  <body>
+    <fire-files root = "fileTree" file-ref = "documents">
+    </fire-files>
+  </body>
+
+  <script type = "module" >
+    let files = document.querySelector("fire-files");
+    files.addEventListener("open", (e) => {
+      console.log(e.key);
+    })
+
+  </script>
+
+  <style>
+    body {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      margin: 1em;
+    }
+    fire-files {
+      font-size: 2.4vmin;
+      height: calc(100% - 2 * var(--p2));
+      font-family: monospace;
+    }
+  </style>
+</html>
