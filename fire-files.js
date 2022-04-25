@@ -28,21 +28,7 @@ const TEST = {
     "matrix notes": "-Mzr7GVSxx4tB9yCCOqF",
   },
   "week5": "-MzMooVn7b6VDliNuyj-",
-  "pset 3": "-MyBrDQ1yDy5HSI7mZ35",
-  "pset 4": "-MyjDAdNn95GnoSaCPkp",
-  "pset 5": "-MzJh7KYaW81o_hT4dX2",
-  "pset 6": "-MzrCrxcUJNsED5jgEqB",
-  "pset 7": "-N-QxAk8N2a0umzlWexh",
-  "dset 3": "-MyBrDQ1yDy5HSI7mZ35",
-  "dset 4": "-MyjDAdNn95GnoSaCPkp",
-  "dset 5": "-MzJh7KYaW81o_hT4dX2",
-  "dset 6": "-MzrCrxcUJNsED5jgEqB",
-  "dset 7": "-N-QxAk8N2a0umzlWexh",
-  "lset 3": "-MyBrDQ1yDy5HSI7mZ35",
-  "lset 4": "-MyjDAdNn95GnoSaCPkp",
-  "lset 5": "-MzJh7KYaW81o_hT4dX2",
-  "lset 6": "-MzrCrxcUJNsED5jgEqB",
-  "lset 7": "-N-QxAk8N2a0umzlWexh",
+
 }
 
 function clean(str){
@@ -1045,7 +1031,7 @@ const DEFUALT_USER = {
     console.log(`set ${path}: ${value}`);
   },
   onValue: (path, cb) => {
-    
+
   },
   push: (path) => {
     return {key: ("h" + new Date().getTime())};
