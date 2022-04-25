@@ -4,10 +4,6 @@ const TEST = {
   "Tests": {
     "TEST": "0",
     "for real": "1",
-<<<<<<< HEAD
-=======
-    "ffff": {}
->>>>>>> 072dc80f35d1b0790a440a8d590fdaab35308173
   },
   "AMME3500": {
     "Problem Set": {
