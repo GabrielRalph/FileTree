@@ -4,8 +4,6 @@ const TEST = {
   "Tests": {
     "TEST": "0",
     "for real": "1",
-    "ffff": "empty"
-
   },
   "AMME3500": {
     "Problem Set": {
@@ -48,6 +46,10 @@ function is() {
   return false;
 }
 
+const tick = "./FileTree/icons/tick.svg";
+const cross = "./FileTree/icons/cross.svg";
+const folder = "./FileTree/icons/folder.svg";
+const file = "./FileTree/icons/file.svg";
 
 class Buttons extends SvgPlus {
   constructor() {
@@ -86,12 +88,16 @@ class ContextMenu extends SvgPlus {
     super("div");
     this.class = "ctx-menu"
     this.files = files;
-    this.offset = new Vector(10, 10);
+    this.offset = new Vector(15, 15);
 
     let lastE = null;
     window.addEventListener("mousemove", (e) => {
       let targets = getTargets(e, [ContextMenu, Files]);
       this.over = !!targets.ContextMenu;
+      lastE = targets.Files ? e : null;
+    })
+    window.addEventListener("mousedown", (e) => {
+      let targets = getTargets(e, [Files]);
       lastE = targets.Files ? e : null;
     })
 
@@ -145,8 +151,8 @@ class ContextMenu extends SvgPlus {
     let input = this.createChild("div", {class: "input"});
     let rel = input.createChild("div");
     this.input = rel.createChild("input");
-    this.tick = rel.createChild("img", {src: "./icons/tick.svg"})
-    this.cross = rel.createChild("img", {src: "./icons/cross.svg"});
+    this.tick = rel.createChild("img", {src: tick})
+    this.cross = rel.createChild("img", {src: cross});
 
 
     this.modes = {
@@ -205,8 +211,8 @@ class ContextMenu extends SvgPlus {
 
     tick.onclick = (e) => {
       if (this.input.valid) {
-        tick.props = {src: "./icons/folder.svg"}
-        cross.props = {src: "./icons/file.svg"}
+        tick.props = {src: folder}
+        cross.props = {src: file}
         this.input.styles = {"display": "none"}
 
         this.pos = e;
@@ -320,8 +326,8 @@ class ContextMenu extends SvgPlus {
 
   show(){
     this.tick.toggleAttribute("invalid", false);
-    this.tick.props = {src: "./icons/tick.svg"}
-    this.cross.props = {src: "./icons/cross.svg"}
+    this.tick.props = {src: tick}
+    this.cross.props = {src: cross}
     this.cross.onclick = () => this.hide();
     this.menu();
     this.mode = "menu"
@@ -358,12 +364,13 @@ class ContextMenu extends SvgPlus {
 
   set pos(v) {
     v = new Vector(v);
-    v = v.sub(this.offset);
-
+    // v = v.sub(this.offset);
+    let o = this.offset;
     this.styles = {
       position: "fixed",
       top: v.y + "px",
       left: v.x + "px",
+      transform: `translate(${-o.x}%, ${-o.y}%)`
     }
     this._pos = v;
   }
@@ -648,9 +655,9 @@ const TYPES = {
     if (e === "empty") e = {};
     return (typeof e === "object" && e != null);
   },
-    icon_src: "./icons/folder.svg",
+    icon_src: folder,
     template: (name) => {
-      return `${name} <img draggable = "false" src = "./icons/folder.svg"/>`
+      return `${name} <img draggable = "false" src = "${folder}"/>`
     },
     dropTarget: true,
     leaf: false,
@@ -659,9 +666,9 @@ const TYPES = {
     is: (e) => {
     return isID(e);
   },
-    icon_src: "./icons/file.svg",
+    icon_src: file,
     template: (name) => {
-      return `${name} <img draggable = "false" src = "./icons/file.svg"/>`
+      return `${name} <img draggable = "false" src = "${file}"/>`
     },
     dropTarget: false,
     leaf: true,
@@ -672,7 +679,7 @@ class Files extends SvgPlus{
   constructor(el){
     super(el);
     this.TYPES = TYPES;
-    this.json = TEST;
+    this._json = TEST;
   }
 
   onconnect(){
@@ -1088,11 +1095,16 @@ class FireFiles extends Files {
   sync(){
     if (this.synced) this.synced();
     let user = this.user;
-    this.synced = user.onValue(this.root, (e) => {
+    this.synced = user.onValue(this.root + "", (e) => {
       this.json = e.val();
+      console.log(e.val());
+      user.loaded = true;
     });
-    this.fireSet = user.set;
-    this.getFileID = () => user.push(this.fileRef).key;
+    this.fireSet = (path, value) => {
+      path[0] = this.root;
+      user.set("/" + path, value);
+    }
+    this.getFileID = () => user.push("/" + this.fileRef).key;
   }
 
   get user(){
