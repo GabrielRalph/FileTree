@@ -4,8 +4,7 @@ const TEST = {
   "Tests": {
     "TEST": "0",
     "for real": "1",
-    "ffff": "empty"
-
+    "ffff": {}
   },
   "AMME3500": {
     "Problem Set": {
