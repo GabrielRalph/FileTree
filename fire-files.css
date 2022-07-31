@@ -1,4 +1,4 @@
-fire-files {
+file-tree {
   --c: #1f1d1a;
   --c2: #332f29;
 
@@ -71,7 +71,7 @@ fire-files {
   opacity: 0.5;
 }
 
-fire-files > div {
+file-tree > div {
   border-radius: var(--r3);
   background: var(--c2);
   padding: var(--p2);
@@ -82,20 +82,20 @@ fire-files > div {
   height: calc(100% - 2 * var(--p1));
 }
 
-fire-files img {
+file-tree img {
   height: 1em;
   float: right;
   padding-left: var(--p1);
 }
 
-fire-files input {
+file-tree input {
   border: none;
   outline: none;
   font-size: 1em;
   font: inherit;
 }
 
-fire-files .files {
+file-tree .files {
   display: flex;
   user-select: none;
   /* position: relative; */
