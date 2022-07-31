@@ -141,8 +141,8 @@ class Files {
   }
 
   set(path, value) {
-    console.log("SET " + path + ": "+ value);
-    console.log(value);
+    // console.log("SET " + path + ": "+ value);
+    // console.log(value);
     path = new Path(path);
     if (path.isRoot) {
       this.data = value;
@@ -163,13 +163,12 @@ class Files {
     }
   }
 
-  // // user functions
   delete(path) {
     this.set(path, null);
     path.pop();
     return path;
   }
-  //
+
   rename(path, name) {
     let obj = this.get(path);
     path = new Path(path);
@@ -205,7 +204,7 @@ class Files {
     return null;
   }
 
-
+  //
   getIcon(path) {
     return new Icon(this.getType(path));
   }
