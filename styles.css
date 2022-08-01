@@ -1,0 +1,66 @@
+file-tree {
+  --drag-color: #e7e6e5;
+  --drop-target: #e1e0e0;
+  --selected-color: #c4c1bf;
+  display: block;
+}
+
+file-tree > div {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+file-tree .files{
+  display: flex;
+  height: 100%;
+}
+file-tree .directory {
+  height: 100%;
+}
+file-tree .directory > div {
+  display: flex;
+  flex-direction: column;
+}
+
+
+.ff-icon {
+  display: flex;
+  cursor: pointer;
+  align-items: center;
+}
+
+.icon {
+  fill: none;
+  stroke: black;
+  stroke-width: 9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  width: 1em;
+  height: 1em;
+}
+
+[drag-icon] {
+  position: fixed;
+  top: -100%;
+  left: -100%;
+  height: 20px;
+}
+
+.ff-icon[valid] {
+  cursor: grabbing;
+}
+.ff-icon[invalid] {
+  cursor: not-allowed;
+}
+
+.ff-icon[selected] {
+  background: var(--selected-color);
+}
+.ff-icon[dragging] {
+  background: var(--drag-color);
+}
+
+.directory[drop-target], .ff-icon[drop-target]:not([dragging]) {
+  background: var(--drop-target);
+}

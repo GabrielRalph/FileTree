@@ -8,7 +8,7 @@ function desanitizeKey(key) {
 }
 
 function fromString(str, path = new Path()) {
-  if (str instanceof Path) {
+  if (str instanceof Path || Array.isArray(str)) {
     for (let key of str) {
       path.push(key);
     }
@@ -19,6 +19,12 @@ function fromString(str, path = new Path()) {
         path.push(sanitizeKey(key));
       }
     }
+  }
+}
+const DEBUG = false;
+function debug(){
+  if (DEBUG) {
+    console.log.apply(console, arguments);
   }
 }
 
@@ -81,11 +87,14 @@ class Path extends Array{
     if (this.length > 0) {
       return this[this.length - 1];
     }
-    return "";
+    return "/";
   }
 
   get root(){
-    return this[0];
+    if (this.length > 0) {
+      return this[0];
+    }
+    return "/"
   }
 
   get isRoot() {
@@ -112,17 +121,18 @@ class Path extends Array{
       if (str.length > 0) str += "/"
       str += desanitizeKey(key);
     }
+    if (this.isRoot) str = "/"
 
     return str;
   }
 }
 
 class Files {
-  constructor(data){
+  constructor(data = {}){
     this.data = data
   }
 
-  // data functions
+  //  Required data retreive and set methods
   get(path) {
     path = new Path(path);
 
@@ -136,16 +146,21 @@ class Files {
         }
       }
     }
-
+    if (typeof data === "object" && data !== null) {
+      data = { ...data }
+    }
     return data;
   }
-
   set(path, value) {
-    // console.log("SET " + path + ": "+ value);
-    // console.log(value);
+    debug("SET " + path + ": "+ value);
+    debug("before", path.isRoot, path);
     path = new Path(path);
     if (path.isRoot) {
-      this.data = value;
+      if (value != null) {
+        this.data = value;
+      } else {
+        this.data = {}
+      }
     } else {
       let data = this.data;
       let valueKey = path.pop();
@@ -162,13 +177,31 @@ class Files {
       }
     }
   }
+  update(path, value) {
+    if (typeof value === "object" && value !== null) {
+      let node = this.get(path);
 
+      let data = this.data;
+      if (!path.isRoot) {
+        for (let key of path) {
+          if (!(key in data)) data[key] = {}
+          data = data[key];
+        }
+      }
+
+      //apply update
+      for (let key in value) {
+        node[key] = value[key];
+      }
+    }
+  }
+
+  //  Standard methods (use set and get methods)
   delete(path) {
     this.set(path, null);
     path.pop();
     return path;
   }
-
   rename(path, name) {
     let obj = this.get(path);
     path = new Path(path);
@@ -180,16 +213,8 @@ class Files {
 
     return path;
   }
-
-  swappable(path, oldpath) {
-    path = new Path(path);
-    oldpath = new Path(oldpath);
-
-    return !oldpath.contains(path) && this.isDirectory(path);
-  }
-
-  swap(path, oldpath) {
-    if (this.swappable(path, oldpath)) {
+  move(path, oldpath) {
+    if (this.moveable(path, oldpath)) {
       path = new Path(path);
       oldpath = new Path(oldpath);
 
@@ -204,11 +229,25 @@ class Files {
     return null;
   }
 
-  //
-  getIcon(path) {
-    return new Icon(this.getType(path));
+  //  OVERWRITTABLE can be overwritten for more functionality
+
+  //  moveable returns a boolean representing whether one path
+  //  and its contents can be moved to the location of another path
+  //  default: no; recursive moves, moves to non directories
+  //           and moves that cause double entries
+  moveable(path, oldpath) {
+    path = new Path(path);
+    oldpath = new Path(oldpath);
+    let is_directory = this.isDirectory(path);
+    let is_recursive = oldpath.contains(path);
+    let is_double_entry = this.getChildrenKeys(path).has(oldpath.key);
+
+
+    return is_directory && !is_recursive && !is_double_entry;
   }
 
+  //  get type returns the type of a given path as a string.
+  //  default: "folder" if it is a directory otherwise "file"
   getType(path) {
     let type = "file"
     if (this.isDirectory(path)) {
@@ -217,15 +256,80 @@ class Files {
     return type;
   }
 
-  getChildrenKeys(path) {
-    let obj = this.get(path);
-    if (typeof obj === "object" && obj !== null)
-      return Object.keys(obj);
-    else return null;
+  //  get Icon returns the icon of a given path as an object of the Element class.
+  //  e.g. an SVGElement or an Image
+  //  default: Uses imported icon dictionary and path type
+  getIcon(path) {
+    let icon = document.createElement("DIV");
+    let text = document.createElement("DIV");
+    text.innerHTML = this.getTitle(path);
+    icon.appendChild(text);
+    icon.appendChild(new Icon(this.getType(path)));
+    return icon
   }
 
+  //  get Title returns the title of a given path
+  //  default: the final key of the path
+  getTitle(path) {
+    return new Path(path).key;
+  }
+
+  //  get Children Keys return the children keys of a given path.
+  //  default: all keys at the path that are not in the childrenFilter set
+  //           otherwise an empty array is returned.
+  getChildrenKeys(path) {
+    let keys = new Set();
+    if (this.isDirectory(path)) {
+      let filter = this.childrenFilter;
+      if (Array.isArray(filter)) {
+        filter = new Set(filter);
+      } else if (!(filter instanceof Set)){
+        filter = new Set();
+      }
+
+      let obj = this.get(path);
+      if (typeof obj === "object" && obj !== null) {
+        for (let key in obj) {
+          if (!filter.has(key)) {
+            keys.add(key);
+          }
+        }
+      }
+    }
+    return keys;
+  }
+
+  //  is Directory returns a boolean representing whether the path is to
+  //  a directory
+  //  defulat: if the path value is a string
   isDirectory(path) {
-    return this.getChildrenKeys(path) !== null;
+    return typeof this.get(path) === "string";
+  }
+
+  getValuesByType(type, startPath = new Path()) {
+    startPath = new Path(startPath);
+    let values = [];
+    let recurse = (path, md = 20) => {
+      if (md < 0) {
+        throw "max recursion"
+      }
+      md--;
+
+      let keys = this.getChildrenKeys(path);
+      for (let key of keys) {
+        recurse(path.add(key), md);
+      }
+
+      let ntype = this.getType(path);
+      if (ntype == type) {
+        let data = this.get(path);
+        data.name = path.key;
+        data.path = path + "";
+        values.push(data)
+      }
+    }
+    recurse(startPath);
+    return values;
   }
 }
 
