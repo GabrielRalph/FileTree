@@ -321,7 +321,7 @@ class Files {
       }
 
       let ntype = this.getType(path);
-      if (ntype == type) {
+      if (ntype == type || type == "all") {
         let data = this.get(path);
         data.name = path.key;
         data.path = path + "";
