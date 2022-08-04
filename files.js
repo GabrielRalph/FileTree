@@ -7,20 +7,32 @@ function desanitizeKey(key) {
   return key;
 }
 
-function fromString(str, path = new Path()) {
-  if (str instanceof Path || Array.isArray(str)) {
+function getPathKeys(str) {
+  let keys = [];
+  if (typeof str === "string" && str !== "/") {
+    str = str.split("/");
     for (let key of str) {
-      path.push(key);
-    }
-  } else if (typeof str === "string" && str != "/") {
-    let keys = str.split("/");
-    for (let key of keys) {
-      if (key != "") {
-        path.push(sanitizeKey(key));
+      if (typeof key === "string" && key.length > 0) {
+        keys.push(sanitizeKey(key));
       }
     }
+  } else if (Array.isArray(str)) {
+    for (let key of str) {
+      if (typeof key === "string" && key.length > 0) {
+        if (!key.match("/")) {
+          keys.push(key);
+        }
+      }
+    }
+  } else if (str instanceof Path) {
+    for (let key of str) {
+      keys.push(key);
+    }
   }
+
+  return keys;
 }
+
 const DEBUG = false;
 function debug(){
   if (DEBUG) {
@@ -28,11 +40,58 @@ function debug(){
   }
 }
 
-class Path extends Array{
+class Path {
   constructor(string){
-    super();
-    fromString(string, this);
+    let Keys = getPathKeys(string);
+    this.getLength = () => {
+      return Keys.length;
+    }
+    this.getKey = () => {
+      if (Keys.length > 0) {
+        return Keys[Keys.length - 1];
+      }
+      return "/"
+    }
+    this.getRoot = () => {
+      if (Keys.length > 0) {
+        return Keys[0];
+      }
+      return "/"
+    }
+
+    this.push = (path) => {
+      let keys = getPathKeys(path);
+      for (let key of keys) {
+        Keys.push(key);
+      }
+    }
+    this.unshift = (path) => {
+      let keys = getPathKeys(path);
+      for (let i = keys.length - 1; i >= 0; i--) {
+        Keys.unshift(keys[i]);
+      }
+    }
+    this.pop = () => {
+      return Keys.pop();
+    }
+    this.shift = () => {
+      return Keys.shift();
+    }
+
+    this.get = (i) => {
+      let key = null;
+      try {key = Keys[i]} catch(e) {key = null};
+      return key;
+    }
+
+    this[Symbol.iterator] = function * (){
+      for (let key of Keys) {
+        yield key;
+      }
+    }
   }
+
+  get length(){ return this.getLength()}
 
   add(key) {
     let copy = this.clone();
@@ -41,29 +100,27 @@ class Path extends Array{
   }
 
   clone() {
-    let path = new Path();
-    for (let i of this.indecies) {
-      path.push(this[i]);
-    }
-
+    let path = new Path(this);
     return path;
   }
 
   contains(p2) {
     let res = false;
-    if (this.length <= p2.length) {
-      res = true;
-      for (let i of this.indecies) {
-        if (this[i] != p2[i]) {
-          res = false;
-          break;
+    if (p2 instanceof Path) {
+      if (this.length <= p2.length) {
+        res = true;
+        for (let i of this.indecies) {
+          if (this.get(i) != p2.get(i)) {
+            res = false;
+            break;
+          }
         }
-      }
-    } else if (this.length - 1 == p2.length) {
-      res = true;
-      for (let i of p2.indecies) {
-        if (this[i] != p2[i]) {
-          res = false;
+      } else if (this.length - 1 == p2.length) {
+        res = true;
+        for (let i of p2.indecies) {
+          if (this.get(i) != p2.get(i)) {
+            res = false;
+          }
         }
       }
     }
@@ -72,9 +129,11 @@ class Path extends Array{
   }
 
   equal(p2) {
+    if (!(p2 instanceof Path)) p2 = new Path(p2);
+
     if (p2.length == this.length) {
       for (let i of this.indecies) {
-        if (this[i] != p2[i]) {
+        if (this.get(i) != p2.get(i)) {
           return false;
         }
       }
@@ -84,17 +143,11 @@ class Path extends Array{
   }
 
   get key(){
-    if (this.length > 0) {
-      return this[this.length - 1];
-    }
-    return "/";
+    return this.getKey();
   }
 
   get root(){
-    if (this.length > 0) {
-      return this[0];
-    }
-    return "/"
+    return this.getRoot();;
   }
 
   get isRoot() {
@@ -132,10 +185,39 @@ class Files {
     this.data = data
   }
 
+  validatePath(path) {
+    path = new Path(path)
+    let validPath = new Path();
+    let data = this.data;
+    for (let key of path) {
+      let valid = false;
+      if (key in data) {
+        let path = validPath.add(key);
+        if (this.typeOf(data[key], path) != null) {
+          data = data[key];
+          validPath = path;
+          valid = true;
+        }
+      }
+
+      if (!valid) break;
+    }
+    return validPath;
+  }
+
+  set data(value) {
+    if (typeof value !== "object" || value === null) {
+      value = {};
+    }
+    this._data = value;
+  }
+  get data(){
+    return this._data;
+  }
+
   //  Required data retreive and set methods
   get(path) {
     path = new Path(path);
-
     let data = this.data;
     if (!path.isRoot) {
       for (let key of path) {
@@ -196,7 +278,7 @@ class Files {
     }
   }
 
-  //  Standard methods (use set and get methods)
+  //  Standard methods (extensions of set and get methods)
   delete(path) {
     this.set(path, null);
     path.pop();
@@ -249,12 +331,15 @@ class Files {
   //  get type returns the type of a given path as a string.
   //  default: "folder" if it is a directory otherwise "file"
   getType(path) {
-    let type = "file"
-    if (this.isDirectory(path)) {
-      type = "folder"
-    }
+    return this.typeOf(this.get(path), path);
+  }
+  typeOf(node, path) {
+    let type = null;
+    if (typeof node === "string") type = "file";
+    else if (typeof node === "object") type = "folder";
     return type;
   }
+
 
   //  get Icon returns the icon of a given path as an object of the Element class.
   //  e.g. an SVGElement or an Image
@@ -262,24 +347,23 @@ class Files {
   getIcon(path) {
     let icon = document.createElement("DIV");
     let text = document.createElement("DIV");
-    text.innerHTML = this.getTitle(path);
+    text.innerHTML = path.key;
     icon.appendChild(text);
     icon.appendChild(new Icon(this.getType(path)));
     return icon
-  }
-
-  //  get Title returns the title of a given path
-  //  default: the final key of the path
-  getTitle(path) {
-    return new Path(path).key;
   }
 
   //  get Children Keys return the children keys of a given path.
   //  default: all keys at the path that are not in the childrenFilter set
   //           otherwise an empty array is returned.
   getChildrenKeys(path) {
+    let data = this.get(path);
+    return this.childrenKeysOf(data, path);
+  }
+  childrenKeysOf(object, path){
     let keys = new Set();
-    if (this.isDirectory(path)) {
+    let type = this.typeOf(object, path);
+    if (type in this.directoryTypes) {
       let filter = this.childrenFilter;
       if (Array.isArray(filter)) {
         filter = new Set(filter);
@@ -287,9 +371,8 @@ class Files {
         filter = new Set();
       }
 
-      let obj = this.get(path);
-      if (typeof obj === "object" && obj !== null) {
-        for (let key in obj) {
+      if (typeof object === "object" && object !== null) {
+        for (let key in object) {
           if (!filter.has(key)) {
             keys.add(key);
           }
@@ -301,36 +384,158 @@ class Files {
 
   //  is Directory returns a boolean representing whether the path is to
   //  a directory
-  //  defulat: if the path value is a string
+  //  defulat: if the path value is a object
   isDirectory(path) {
-    return typeof this.get(path) === "string";
+    let type = this.getType(path);
+    return type in this.directoryTypes;
   }
 
+
+  get directoryTypes(){
+    return {
+      "folder": true
+    }
+  }
+
+
   getValuesByType(type, startPath = new Path()) {
-    startPath = new Path(startPath);
+
     let values = [];
-    let recurse = (path, md = 20) => {
-      if (md < 0) {
-        throw "max recursion"
+    let recurse = (node, path = new Path()) => {
+      if (path.length > 50)throw "max recursion"
+      let ntype = this.typeOf(node, path);
+      if (ntype in this.directoryTypes) {
+        let keys = this.childrenKeysOf(node, path);
+        for (let key of keys) {
+          recurse(node[key], path.add(key));
+        }
       }
-      md--;
 
-      let keys = this.getChildrenKeys(path);
-      for (let key of keys) {
-        recurse(path.add(key), md);
-      }
-
-      let ntype = this.getType(path);
       if (ntype == type) {
-        let data = this.get(path);
-        data.name = path.key;
-        data.path = path + "";
-        values.push(data)
+        node.name = path.key;
+        node.path = path + "";
+        values.push(node)
       }
     }
-    recurse(startPath);
+    let startNode = this.get(startPath);
+    startPath = new Path(startPath);
+    // console.log(startNode);
+    recurse(startNode, startPath);
     return values;
   }
 }
 
-export {Files, Path}
+
+
+function checkFirebaseDatabaseKeyValidity(path)  {
+  for (let key of path) {
+    if (key.length > 768)
+    throw key + " extends maximum length of 768 bytes.";
+    if (key.match(/[.$#/[]]|[\x00-\x1F]|\x7F/))
+    throw key + " contains either .#$/[], ASCII characers 0-31 or 127";
+  }
+}
+
+class FireFiles extends Files {
+  constructor(fireUser, root, ftree){
+    super({});
+    this.fireUser = fireUser;
+    this.root = root;
+    this._on_update = () => {
+      console.log('xx');
+      try {
+        ftree.selectPath(this.validatePath(ftree.selectedPath));
+        ftree.openPath = this.validatePath(ftree.openPath);
+        ftree.update();
+      } catch(e) {}
+      try {
+        this.onFireUpdate();
+      } catch(e) {}
+      try {
+        this.onfireUpdate();
+      } catch(e) {}
+    }
+  }
+
+  set fireUser(fireUser) {
+    this._fireUser = null;
+    if (fireUser === null || typeof fireUser !== "object") {
+    } else if (fireUser.set instanceof Function &&
+      fireUser.set instanceof Function &&
+      fireUser.update instanceof Function) {
+        this._fireUser = fireUser;
+    }
+  }
+  get fireUser() {return this._fireUser;}
+
+  set root(root){
+    this._root = null;
+    if (root) {
+      root = new Path(root);
+      checkFirebaseDatabaseKeyValidity(root);
+      this._root = root;
+      this.watchFirebaseRoot();
+    }
+  }
+  get root(){
+    let root = this._root;
+    if (this._root instanceof Path) {
+      root = root.clone();
+    }
+    return root;
+  }
+
+
+  watchFirebaseRoot() {
+    let {fireUser, root} = this;
+    if (fireUser != null || root != null) {
+      if (this.unsubscribe != null) this.unsubscribe();
+
+      this.unsubscribe = fireUser.onValue(root + "", (e) => {
+        this.data = e.val();
+        this._on_update();
+      })
+    }
+  }
+  async forceFirebaseUpdate(){
+    let {root, fireUser} = this;
+    if (root != null && fireUser != null) {
+      this.data = (await this.fireUser.get(this.root + "")).val();
+      this._on_update();
+    }
+  }
+
+  async set(path, value) {
+    checkFirebaseDatabaseKeyValidity(path);
+    super.set(path, value);
+
+    let {root, fireUser} = this;
+    if (root !== null && fireUser !== null) {
+      try {
+        path = root.add(path);
+        await fireUser.set(path + "", value);
+      } catch(e) {
+        await this.forceFirebaseUpdate();
+        throw e;
+      }
+    }
+  }
+
+  async update(path, value) {
+    if (typeof value === "object" && value != null) {
+      checkFirebaseDatabaseKeyValidity(path);
+      super.update(path, value);
+
+      let {root, fireUser} = this;
+      try {
+        path = root.add(path);
+        await fireUser.set(path + "", value);
+      } catch(e) {
+        await this.forceFirebaseUpdate();
+        throw e;
+      }
+    }
+  }
+}
+
+export {Files, FireFiles, Path}

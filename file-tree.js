@@ -1,6 +1,6 @@
 import {SvgPlus, Vector} from "../SvgPlus/4.js"
 import {Icons, Icon} from "./Icons.js";
-import {Files, Path} from "./files.js"
+import {Files, FireFiles, Path} from "./files.js"
 
 // -------------------------------------------------- //
 function getTargets(e, classes = [FFIcon, Directory]){
@@ -182,6 +182,10 @@ class Directory extends FFNode {
 class FileTree extends SvgPlus{
   constructor(el){
     super(el);
+    this.selectedPath = new Path();
+    this.openPath = new Path();
+    this.minCollapse = 0;
+
     this.files = new Files({})
   }
 
@@ -196,6 +200,7 @@ class FileTree extends SvgPlus{
   get files(){
     return this._files;
   }
+
 
   onconnect(){
     let rel = this.createChild("div")
@@ -212,7 +217,7 @@ class FileTree extends SvgPlus{
 
       let spath = this.selectedPath;
       if (spath && spath.equal(path)) {
-        if (path.length > 1) {
+        if (path.length > this.minCollapse) {
           path.pop();
         }
       }
@@ -220,9 +225,13 @@ class FileTree extends SvgPlus{
       path = targets.Directory.path;
     }
 
-    this.selectedPath = path;
     this.openPath = path;
+    this.selectPath(path)
     this.update();
+  }
+
+  selectPath(path) {
+    this.selectedPath = path;
 
     const event = new Event("selection");
     event.filePath = new Path(path);
@@ -231,22 +240,25 @@ class FileTree extends SvgPlus{
 
   // re renders all directories
   update() {
+    let {selectedPath, openPath, files} = this;
     let offsetX = this.directories.scrollLeft;
 
     let directories = new SvgPlus("div");
     directories.class = "files";
 
-    let sp = new Path(this.selectedPath);
+    let sp = new Path(selectedPath);
 
-    let dirPath = "";
-    directories.appendChild(new Directory("/", sp.length > 0 ? sp.shift() : null, this));
+    let dirPath = new Path();
+    let selected = sp.length > 0 ? sp.shift(): null;
+    directories.appendChild(new Directory("/", selected, this));
 
-    let openPath = this.openPath;
-    for (let path of openPath) {
-      if (dirPath != "") dirPath += "/"
-      dirPath += path;
+    let op = new Path(openPath);
+    for (let path of op) {
+      dirPath.push(path);
+
       if (this.files.isDirectory(dirPath)) {
-        directories.appendChild(new Directory(dirPath, sp.length > 0 ? sp.shift() : null, this));
+        selected = sp.length > 0 ? sp.shift(): null;
+        directories.appendChild(new Directory(dirPath, selected, this));
       } else {
         this.openPath = dirPath;
         break;
@@ -267,40 +279,7 @@ class FileTree extends SvgPlus{
   moveable(fdir, fnode) {
     return this.files.moveable(fdir.path, fnode.path);
   }
-
-  // selected path
-  set selectedPath(path){
-    this._path = path;
-  }
-  get selectedPath(){
-    let path = this._path;
-    if (path instanceof Path) {
-      path = path.clone();
-    } else if (typeof path === "string") {
-      path = new Path(path);
-    } else {
-      path = new Path();
-    }
-    return path;
-  }
-
-  set openPath(path){
-    this._opath = path;
-  }
-  get openPath(){
-    let path = this._opath;
-    if (path instanceof Path) {
-      path = path.clone();
-    } else if (typeof path === "string") {
-      if (path != "/") {
-        path = new Path(path);
-      }
-    } else {
-      path = new Path();
-    }
-    return path;
-  }
 }
 
 SvgPlus.defineHTMLElement(FileTree);
-export {Files, Path, Icon, Icons}
+export {Files, FireFiles, Path, Icon, Icons}
