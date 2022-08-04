@@ -193,6 +193,7 @@ class FileTree extends SvgPlus{
       this._files = new Files({});
     }
   }
+  
   get files(){
     return this._files;
   }
