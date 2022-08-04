@@ -179,7 +179,6 @@ class Directory extends FFNode {
 }
 
 
-
 class FileTree extends SvgPlus{
   constructor(el){
     super(el);
@@ -193,7 +192,7 @@ class FileTree extends SvgPlus{
       this._files = new Files({});
     }
   }
-  
+
   get files(){
     return this._files;
   }
