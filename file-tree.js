@@ -184,7 +184,17 @@ class FileTree extends SvgPlus{
   constructor(el){
     super(el);
     this.files = new Files({})
-    // this.files = new Files(TEST);
+  }
+
+  set files(files){
+    if (files instanceof Files) {
+      this._files = files;
+    } else {
+      this._files = new Files({});
+    }
+  }
+  get files(){
+    return this._files;
   }
 
   onconnect(){
