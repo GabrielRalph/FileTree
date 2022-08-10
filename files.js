@@ -290,11 +290,14 @@ class Files {
 
     this.set(path, null);
     path.pop();
-    path.push(name);
-    this.set(path, obj);
+    if (name !== "" && name !== null) {
+      path.push(name);
+      this.set(path, obj);
+    }
 
     return path;
   }
+
   move(path, oldpath) {
     if (this.moveable(path, oldpath)) {
       path = new Path(path);
@@ -305,7 +308,7 @@ class Files {
       path.push(oldpath.key);
       this.set(path, value);
 
-      return path;
+      return path
     }
 
     return null;
@@ -442,7 +445,6 @@ class FireFiles extends Files {
     this.fireUser = fireUser;
     this.root = root;
     this._on_update = () => {
-      console.log('xx');
       try {
         ftree.selectPath(this.validatePath(ftree.selectedPath));
         ftree.openPath = this.validatePath(ftree.openPath);
@@ -520,7 +522,6 @@ class FireFiles extends Files {
       }
     }
   }
-
   async update(path, value) {
     if (typeof value === "object" && value != null) {
       checkFirebaseDatabaseKeyValidity(path);
@@ -529,12 +530,19 @@ class FireFiles extends Files {
       let {root, fireUser} = this;
       try {
         path = root.add(path);
-        await fireUser.set(path + "", value);
+        await fireUser.update(path + "", value);
       } catch(e) {
         await this.forceFirebaseUpdate();
         throw e;
       }
     }
+  }
+  rename(path, name) {
+    let obj = this.get(path);
+    checkFirebaseDatabaseKeyValidity([name]);
+    if (obj === null) throw "old path does not exist";
+
+    return super.rename(path, name);
   }
 }
 
