@@ -64,7 +64,6 @@ class FireFiles extends Files {
       let {fireUser, root} = this;
       if (fireUser != null || root != null) {
         if (this.unsubscribe != null) this.unsubscribe();
-
         this.unsubscribe = fireUser.onValue(root + "", (e) => {
           this.data = e.val();
           this.updateHandler();

@@ -143,7 +143,6 @@ class Directory extends FFNode {
 
     path = new Path(path);
 
-    console.log("create directory " + path);
     let keys = ftree.files.getChildrenKeys(path);
     let rel = this.createChild("div");
     for (let key of keys) {
@@ -190,6 +189,9 @@ class FileTree extends SvgPlus{
     this.files = new Files({})
   }
 
+  /**
+   * @param {Files} files
+   */
   set files(files){
     if (files instanceof Files) {
       this._files = files;
@@ -198,6 +200,9 @@ class FileTree extends SvgPlus{
     }
   }
 
+  /**
+   * @return {Files}
+   */
   get files(){
     return this._files;
   }
@@ -241,7 +246,6 @@ class FileTree extends SvgPlus{
 
   // re renders all directories
   update() {
-    console.log("file-tree update");
     let {selectedPath, openPath, files} = this;
     let offsetX = this.directories.scrollLeft;
 
@@ -278,6 +282,7 @@ class FileTree extends SvgPlus{
     this.selectedPath = this.files.move(fdir.path, fnode.path);
     this.update();
   }
+
   moveable(fdir, fnode) {
     return this.files.moveable(fdir.path, fnode.path);
   }
