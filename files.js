@@ -364,7 +364,6 @@ class Files {
     return this.childrenKeysOf(data, path);
   }
   childrenKeysOf(object, path){
-    console.log(object);
     let keys = new Set();
     let type = this.typeOf(object, path);
     if (type in this.directoryTypes) {
